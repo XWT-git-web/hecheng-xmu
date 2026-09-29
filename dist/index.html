@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#071e33">
+  <meta name="description" content="一款以厦门大学校园记忆为主题的合成小游戏。">
+  <title>合成厦大 · 校园记忆小游戏</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23071e33'/%3E%3Cpath d='M10 42h44v7H10zm6-5h32L32 18z' fill='%23f4efe3'/%3E%3Cpath d='M27 32h10v10H27z' fill='%23d65c42'/%3E%3Ccircle cx='49' cy='14' r='6' fill='%23f6c96b'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #071e33;
+      --ink-2: #0d2a46;
+      --sea: #19a7aa;
+      --sea-light: #8ee4d8;
+      --tile: #d65c42;
+      --sand: #f4efe3;
+      --gold: #f6c96b;
+      --muted: #a7bbca;
+      --line: rgba(203, 232, 239, .17);
+      --panel: rgba(10, 37, 59, .84);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      min-height: 100svh;
+      overflow-x: hidden;
+      color: var(--sand);
+      font-family: ui-rounded, "SF Pro Rounded", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 88% 4%, rgba(246, 201, 107, .16), transparent 20rem),
+        radial-gradient(circle at 5% 88%, rgba(25, 167, 170, .22), transparent 24rem),
+        linear-gradient(145deg, #061827 0%, #08243c 54%, #071b2b 100%);
+    }
+
+    button { font: inherit; }
+    button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+
+    .page {
+      width: min(1120px, 100%);
+      min-height: 100svh;
+      margin: 0 auto;
+      padding: max(16px, env(safe-area-inset-top)) 20px max(18px, env(safe-area-inset-bottom));
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 14px;
+    }
+
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand-mark {
+      width: 44px; height: 44px; border-radius: 14px; position: relative; flex: 0 0 auto;
+      background: linear-gradient(145deg, var(--sea), #117d8c);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.22), 0 10px 30px rgba(0,0,0,.22);
+    }
+    .brand-mark::before {
+      content: ""; position: absolute; left: 9px; right: 9px; bottom: 10px; height: 7px;
+      background: var(--sand); clip-path: polygon(0 100%, 50% 0, 100% 100%);
+    }
+    .brand-mark::after {
+      content: ""; position: absolute; left: 11px; right: 11px; bottom: 6px; height: 5px;
+      border-radius: 5px; background: var(--tile);
+    }
+    .eyebrow { margin: 0 0 2px; color: var(--sea-light); font-size: .78rem; letter-spacing: .14em; }
+    h1 { margin: 0; font-size: clamp(1.28rem, 2.6vw, 1.72rem); letter-spacing: .02em; }
+    .actions { display: flex; align-items: center; gap: 8px; }
+    .icon-btn {
+      width: 42px; height: 42px; border: 1px solid var(--line); border-radius: 13px;
+      display: grid; place-items: center; color: var(--sand); background: rgba(255,255,255,.055);
+      cursor: pointer; transition: transform .18s ease, background .18s ease;
+    }
+    .icon-btn:hover { background: rgba(255,255,255,.1); transform: translateY(-1px); }
+    .icon-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+
+    .content {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(360px, 620px) minmax(250px, 340px);
+      align-items: center;
+      justify-content: center;
+      gap: clamp(18px, 4vw, 48px);
+    }
+
+    .game-wrap { min-width: 0; }
+    .hud {
+      display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) 86px; gap: 8px;
+      margin-bottom: 10px;
+    }
+    .stat, .next {
+      min-height: 56px; border: 1px solid var(--line); border-radius: 15px; background: var(--panel);
+      box-shadow: 0 10px 35px rgba(0,0,0,.14); backdrop-filter: blur(14px);
+    }
+    .stat { padding: 8px 12px; }
+    .stat span, .next span { display: block; color: var(--muted); font-size: .72rem; }
+    .stat strong { display: block; margin-top: 1px; font-size: 1.22rem; font-variant-numeric: tabular-nums; }
+    .next { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 5px 8px; }
+    #nextBadge {
+      width: 38px; height: 38px; display: grid; place-items: center; border-radius: 50%;
+      color: #071e33; font-weight: 900; border: 2px solid rgba(255,255,255,.5);
+      box-shadow: inset 0 -5px 10px rgba(0,0,0,.12);
+    }
+
+    .board {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 440 / 700;
+      max-height: min(74svh, 720px);
+      margin: 0 auto;
+      border: 1px solid rgba(142, 228, 216, .24);
+      border-radius: 28px;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(7,30,51,.18), rgba(4,21,35,.62)),
+        radial-gradient(circle at 78% 8%, rgba(246,201,107,.12), transparent 30%);
+      box-shadow: 0 28px 70px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.06);
+      touch-action: none;
+    }
+    .board::before {
+      content: ""; position: absolute; inset: 0; pointer-events: none;
+      background: repeating-linear-gradient(125deg, transparent 0 34px, rgba(255,255,255,.014) 35px 36px);
+    }
+    canvas { width: 100%; height: 100%; display: block; cursor: crosshair; touch-action: none; }
+    .drop-hint {
+      position: absolute; left: 50%; top: 16px; transform: translateX(-50%);
+      z-index: 2; pointer-events: none; white-space: nowrap; color: rgba(244,239,227,.72);
+      font-size: .76rem; letter-spacing: .08em; transition: opacity .3s ease;
+    }
+    .drop-hint.hide { opacity: 0; }
+    .combo-pop {
+      position: absolute; left: 50%; top: 42%; z-index: 3; pointer-events: none;
+      color: var(--gold); font-size: 1.2rem; font-weight: 900; opacity: 0;
+      transform: translate(-50%, 6px) scale(.92);
+    }
+    .combo-pop.show { animation: combo .65s ease-out; }
+    @keyframes combo { 25% { opacity: 1; transform: translate(-50%, -8px) scale(1.08); } 100% { opacity: 0; transform: translate(-50%, -34px) scale(1); } }
+
+    .side { align-self: center; }
+    .side-kicker { color: var(--gold); font-size: .76rem; font-weight: 800; letter-spacing: .14em; }
+    .side h2 { margin: 8px 0 12px; max-width: 12ch; font-size: clamp(1.9rem, 4vw, 3.05rem); line-height: 1.06; }
+    .side p { margin: 0; color: var(--muted); font-size: 1rem; line-height: 1.75; }
+    .motto {
+      margin: 24px 0; padding: 17px 18px 16px 20px; border-left: 3px solid var(--tile);
+      border-radius: 0 16px 16px 0; background: rgba(255,255,255,.04);
+    }
+    .motto strong { display: block; font-family: "STKaiti", "KaiTi", serif; font-size: 1.25rem; letter-spacing: .12em; }
+    .motto small { display: block; margin-top: 5px; color: var(--muted); }
+    .legend-title { margin: 0 0 10px; color: var(--sand); font-size: .85rem; }
+    .legend { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
+    .legend-item {
+      display: flex; align-items: center; gap: 9px; min-width: 0; padding: 8px 10px;
+      border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.035);
+    }
+    .legend-dot { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; flex: 0 0 auto; color: #071e33; font-size: .68rem; font-weight: 900; }
+    .legend-item span:last-child { overflow: hidden; color: #c6d5df; font-size: .75rem; text-overflow: ellipsis; white-space: nowrap; }
+    footer { text-align: center; color: rgba(167,187,202,.68); font-size: .72rem; }
+
+    .overlay {
+      position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 20px;
+      background: rgba(3,15,25,.78); backdrop-filter: blur(12px);
+    }
+    .overlay[hidden] { display: none; }
+    .dialog {
+      width: min(420px, 100%); border: 1px solid var(--line); border-radius: 24px;
+      padding: 28px; text-align: center; background: #0b2943; box-shadow: 0 30px 100px rgba(0,0,0,.45);
+    }
+    .dialog .seal {
+      width: 66px; height: 66px; margin: 0 auto 15px; border-radius: 50%; display: grid; place-items: center;
+      color: var(--ink); font-weight: 950; font-size: 1.18rem; background: var(--gold); border: 5px solid rgba(255,255,255,.35);
+    }
+    .dialog h2 { margin: 0 0 8px; font-size: 1.65rem; }
+    .dialog p { margin: 0 0 20px; color: var(--muted); line-height: 1.65; }
+    .dialog p strong { color: var(--gold); font-size: 1.5rem; }
+    .primary {
+      min-height: 46px; padding: 0 24px; border: 0; border-radius: 14px; cursor: pointer;
+      color: #081d2f; background: var(--sand); font-weight: 900;
+    }
+    .primary:hover { background: #fff; }
+
+    @media (max-width: 840px) {
+      .page { padding-inline: 12px; gap: 10px; }
+      .content { display: block; }
+      .game-wrap { width: min(100%, 540px); margin: 0 auto; }
+      .board { max-height: calc(100svh - 150px); border-radius: 22px; }
+      .side { display: none; }
+      footer { display: none; }
+    }
+
+    @media (max-width: 480px) {
+      .page { padding-top: max(9px, env(safe-area-inset-top)); padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+      .brand-mark { width: 38px; height: 38px; border-radius: 12px; }
+      .eyebrow { display: none; }
+      h1 { font-size: 1.12rem; }
+      .icon-btn { width: 38px; height: 38px; border-radius: 12px; }
+      .hud { grid-template-columns: repeat(3, 1fr) 72px; gap: 5px; margin-bottom: 7px; }
+      .stat, .next { min-height: 48px; border-radius: 12px; }
+      .stat { padding: 6px 8px; }
+      .stat span, .next span { font-size: .62rem; }
+      .stat strong { font-size: 1rem; }
+      #nextBadge { width: 32px; height: 32px; font-size: .78rem; }
+      .next { gap: 4px; padding: 3px 5px; }
+      .board { max-height: calc(100svh - 116px); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .001ms !important; transition-duration: .001ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"></div>
+        <div>
+          <p class="eyebrow">XIAMEN CAMPUS MERGE</p>
+          <h1>合成厦大</h1>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="icon-btn" id="resetBtn" aria-label="重新开始" title="重新开始">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>
+        </button>
+        <button class="icon-btn" id="soundBtn" aria-label="关闭音效" title="音效开关">
+          <svg id="soundIcon" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Zm4 4a4 4 0 0 1 0 6m3-9a8 8 0 0 1 0 12"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="content">
+      <section class="game-wrap" aria-label="合成厦大游戏区">
+        <div class="hud" aria-live="polite">
+          <div class="stat"><span>分数</span><strong id="score">0</strong></div>
+          <div class="stat"><span>最高</span><strong id="best">0</strong></div>
+          <div class="stat"><span>连击</span><strong id="combo">×1</strong></div>
+          <div class="next"><span>下一个</span><b id="nextBadge">白</b></div>
+        </div>
+        <div class="board" id="board">
+          <canvas id="game" width="440" height="700" aria-label="移动鼠标或手指选择位置，松开即可投放；键盘左右键移动，空格投放"></canvas>
+          <div class="drop-hint" id="hint">移动选择位置 · 松手投放</div>
+          <div class="combo-pop" id="comboPop">连击 ×2</div>
+        </div>
+      </section>
+
+      <aside class="side">
+        <div class="side-kicker">从海边出发</div>
+        <h2>把厦园记忆，一层层合起来。</h2>
+        <p>让相同的校园印记碰在一起，从白城与芙蓉隧道，慢慢合成一座完整的厦门大学。</p>
+        <div class="motto">
+          <strong>自强不息 · 止于至善</strong>
+          <small>每一次合成都更靠近顶级印记</small>
+        </div>
+        <p class="legend-title">校园图鉴 · 前六级</p>
+        <div class="legend" id="legend"></div>
+      </aside>
+    </main>
+
+    <footer>非官方校园主题同人小游戏 · 建议竖屏体验</footer>
+  </div>
+
+  <div class="overlay" id="gameOver" hidden>
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="overTitle">
+      <div class="seal">厦大</div>
+      <h2 id="overTitle">海风装不下啦</h2>
+      <p>本次留下了 <strong id="finalScore">0</strong> 分校园记忆</p>
+      <button class="primary" id="againBtn">再来一局</button>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const LEVELS = [
+        { name: '白城沙滩', short: '白', color: '#8ee4d8', ink: '#08334a' },
+        { name: '芙蓉隧道', short: '芙', color: '#f6c96b', ink: '#4b3511' },
+        { name: '芙蓉湖', short: '湖', color: '#49c9bb', ink: '#063d46' },
+        { name: '上弦场', short: '弦', color: '#ef9a63', ink: '#502415' },
+        { name: '海韵园', short: '韵', color: '#71aee8', ink: '#0b3155' },
+        { name: '群贤楼', short: '贤', color: '#e67a5c', ink: '#4b1e19' },
+        { name: '建南礼堂', short: '南', color: '#f4efe3', ink: '#173247' },
+        { name: '嘉庚楼群', short: '庚', color: '#d65c42', ink: '#fff5e8' },
+        { name: '颂恩楼', short: '颂', color: '#a88adf', ink: '#28184c' },
+        { name: '止于至善', short: '善', color: '#f0b94f', ink: '#40280a' },
+        { name: '厦门大学', short: '厦', color: '#f7f1e7', ink: '#8f2f28' }
+      ];
+
+      const W = 440, H = 700;
+      const wall = { left: 20, right: 420, top: 122, floor: 680 };
+      const dangerY = 172;
+      const gravity = 1580;
+      const fixed = 1 / 120;
+      const maxLevel = LEVELS.length - 1;
+      const canvas = document.getElementById('game');
+      const ctx = canvas.getContext('2d');
+      const board = document.getElementById('board');
+      const scoreEl = document.getElementById('score');
+      const bestEl = document.getElementById('best');
+      const comboEl = document.getElementById('combo');
+      const nextBadge = document.getElementById('nextBadge');
+      const hint = document.getElementById('hint');
+      const comboPop = document.getElementById('comboPop');
+      const gameOver = document.getElementById('gameOver');
+      const finalScore = document.getElementById('finalScore');
+      const soundBtn = document.getElementById('soundBtn');
+
+      const state = {
+        balls: [], score: 0, best: 0, combo: 1, running: true,
+        aim: W / 2, current: 0, next: 1, time: 0, lastDrop: -9,
+        lastMerge: -9, dropCount: 0, sound: true, audio: null
+      };
+
+      const radius = level => 21 * Math.pow(4.1, level / maxLevel);
+      const randomStarter = () => Math.floor(Math.random() * 4);
+      const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
+
+      function drawLandmark(level, x, y, r, angle = 0, alpha = 1) {
+        const item = LEVELS[level];
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+
+        const glow = ctx.createRadialGradient(-r * .32, -r * .4, r * .08, 0, 0, r);
+        glow.addColorStop(0, '#ffffff');
+        glow.addColorStop(.12, item.color);
+        glow.addColorStop(1, item.color);
+        ctx.fillStyle = glow;
+        ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+
+        ctx.strokeStyle = 'rgba(255,255,255,.52)';
+        ctx.lineWidth = Math.max(1.5, r * .055);
+        ctx.beginPath(); ctx.arc(0, 0, r * .88, 0, Math.PI * 2); ctx.stroke();
+
+        ctx.fillStyle = item.ink;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = `900 ${Math.max(13, r * .78)}px "STKaiti", "KaiTi", "PingFang SC", sans-serif`;
+        ctx.fillText(item.short, 0, r * .02);
+
+        if (r > 49) {
+          ctx.font = `700 ${Math.max(9, r * .16)}px system-ui, sans-serif`;
+          ctx.letterSpacing = '.06em';
+          ctx.fillText(item.name, 0, r * .48);
+        }
+        ctx.restore();
+      }
+
+      function addBall(level, x, y) {
+        const r = radius(level);
+        const ball = { level, x, y, r, vx: 0, vy: 0, mass: r * r, angle: 0, born: state.time, danger: 0, dead: false };
+        state.balls.push(ball);
+        return ball;
+      }
+
+      function setScore(points) {
+        state.score += points;
+        if (state.score > state.best) {
+          state.best = state.score;
+          try { localStorage.setItem('xmu_merge_best_v1', String(state.best)); } catch (_) {}
+        }
+        scoreEl.textContent = state.score.toLocaleString('zh-CN');
+        bestEl.textContent = state.best.toLocaleString('zh-CN');
+        comboEl.textContent = `×${state.combo}`;
+      }
+
+      function syncNext() {
+        const item = LEVELS[state.next];
+        nextBadge.textContent = item.short;
+        nextBadge.style.background = item.color;
+        nextBadge.style.color = item.ink;
+      }
+
+      function tone(freq, duration, offset = 0, volume = .05) {
+        if (!state.sound) return;
+        try {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (!state.audio) state.audio = new AudioCtx();
+          if (state.audio.state === 'suspended') state.audio.resume();
+          const osc = state.audio.createOscillator();
+          const gain = state.audio.createGain();
+          const start = state.audio.currentTime + offset;
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, start);
+          gain.gain.setValueAtTime(.0001, start);
+          gain.gain.exponentialRampToValueAtTime(volume, start + .012);
+          gain.gain.exponentialRampToValueAtTime(.0001, start + duration);
+          osc.connect(gain); gain.connect(state.audio.destination);
+          osc.start(start); osc.stop(start + duration + .02);
+        } catch (_) {}
+      }
+
+      function merge(a, b) {
+        a.dead = true; b.dead = true;
+        const level = a.level + 1;
+        const merged = addBall(level, (a.x + b.x) / 2, (a.y + b.y) / 2);
+        merged.vx = (a.vx + b.vx) * .48;
+        merged.vy = (a.vy + b.vy) * .38 - 70;
+        const chained = state.time - state.lastMerge < 1.15;
+        state.combo = chained ? Math.min(9, state.combo + 1) : 1;
+        state.lastMerge = state.time;
+        setScore(Math.round((2 ** (level + 1)) * state.combo));
+        tone(320 * Math.pow(1.09, level), .16, 0, .075);
+        tone(480 * Math.pow(1.08, level), .18, .045, .04);
+        if (state.combo > 1) {
+          comboPop.textContent = `连击 ×${state.combo}`;
+          comboPop.classList.remove('show');
+          void comboPop.offsetWidth;
+          comboPop.classList.add('show');
+        }
+      }
+
+      function physics(dt) {
+        state.time += dt;
+        for (const b of state.balls) {
+          if (b.dead) continue;
+          b.vy += gravity * dt;
+          b.vx *= .999;
+          b.x += b.vx * dt;
+          b.y += b.vy * dt;
+          b.angle += (b.vx / Math.max(b.r, 1)) * dt;
+
+          if (b.x - b.r < wall.left) { b.x = wall.left + b.r; b.vx = Math.abs(b.vx) * .24; }
+          if (b.x + b.r > wall.right) { b.x = wall.right - b.r; b.vx = -Math.abs(b.vx) * .24; }
+          if (b.y + b.r > wall.floor) {
+            b.y = wall.floor - b.r;
+            if (b.vy > 0) b.vy *= -.12;
+            b.vx *= Math.exp(-3.6 * dt);
+          }
+        }
+
+        for (let pass = 0; pass < 3; pass++) {
+          for (let i = 0; i < state.balls.length; i++) {
+            const a = state.balls[i];
+            if (a.dead) continue;
+            for (let j = i + 1; j < state.balls.length; j++) {
+              const b = state.balls[j];
+              if (b.dead) continue;
+              let dx = b.x - a.x, dy = b.y - a.y;
+              const minDist = a.r + b.r;
+              const distSq = dx * dx + dy * dy;
+              if (distSq >= minDist * minDist) continue;
+              let dist = Math.sqrt(distSq);
+              if (dist < .001) { dx = 1; dy = 0; dist = 1; }
+              if (a.level === b.level && a.level < maxLevel) { merge(a, b); continue; }
+
+              const nx = dx / dist, ny = dy / dist;
+              const invA = 1 / a.mass, invB = 1 / b.mass;
+              const totalInv = invA + invB;
+              const correction = (minDist - dist) / totalInv;
+              a.x -= nx * correction * invA; a.y -= ny * correction * invA;
+              b.x += nx * correction * invB; b.y += ny * correction * invB;
+
+              const relative = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+              if (relative < 0) {
+                const impulse = -(1.08 * relative) / totalInv;
+                a.vx -= impulse * nx * invA; a.vy -= impulse * ny * invA;
+                b.vx += impulse * nx * invB; b.vy += impulse * ny * invB;
+              }
+            }
+          }
+        }
+
+        state.balls = state.balls.filter(b => !b.dead);
+        for (const b of state.balls) {
+          const settledNearTop = b.y - b.r < dangerY && Math.abs(b.vy) < 90 && state.time - b.born > 1;
+          b.danger = settledNearTop ? b.danger + dt : Math.max(0, b.danger - dt * 2);
+          if (b.danger > 2.1) endGame();
+        }
+        if (state.time - state.lastMerge > 1.2 && state.combo !== 1) {
+          state.combo = 1;
+          comboEl.textContent = '×1';
+        }
+      }
+
+      function drawBackground() {
+        ctx.clearRect(0, 0, W, H);
+        const sky = ctx.createLinearGradient(0, 0, 0, H);
+        sky.addColorStop(0, 'rgba(27, 120, 148, .2)');
+        sky.addColorStop(1, 'rgba(3, 18, 31, .35)');
+        ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
+
+        ctx.strokeStyle = 'rgba(142,228,216,.68)';
+        ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(wall.left, wall.top);
+        ctx.lineTo(wall.left, wall.floor - 24);
+        ctx.quadraticCurveTo(wall.left, wall.floor, wall.left + 24, wall.floor);
+        ctx.lineTo(wall.right - 24, wall.floor);
+        ctx.quadraticCurveTo(wall.right, wall.floor, wall.right, wall.floor - 24);
+        ctx.lineTo(wall.right, wall.top);
+        ctx.stroke();
+
+        ctx.setLineDash([8, 9]);
+        ctx.strokeStyle = 'rgba(239, 122, 92, .62)';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(wall.left + 8, dangerY); ctx.lineTo(wall.right - 8, dangerY); ctx.stroke();
+        ctx.setLineDash([]);
+
+        if (state.running) {
+          const r = radius(state.current);
+          const x = clamp(state.aim, wall.left + r, wall.right - r);
+          ctx.setLineDash([3, 9]);
+          ctx.strokeStyle = 'rgba(244,239,227,.25)';
+          ctx.beginPath(); ctx.moveTo(x, 80 + r); ctx.lineTo(x, wall.floor - 5); ctx.stroke();
+          ctx.setLineDash([]);
+          drawLandmark(state.current, x, 78, r, 0, state.time - state.lastDrop < .48 ? .42 : 1);
+        }
+      }
+
+      function render() {
+        drawBackground();
+        for (const b of state.balls) {
+          const age = Math.min(1, (state.time - b.born) / .18);
+          const scale = age < 1 ? .76 + .28 * Math.sin(age * Math.PI / 2) : 1;
+          drawLandmark(b.level, b.x, b.y, b.r * scale, b.angle);
+          if (b.danger > 0) {
+            ctx.save(); ctx.globalAlpha = Math.min(.8, b.danger / 2);
+            ctx.strokeStyle = '#ff7a6b'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(b.x, b.y, b.r + 5, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+          }
+        }
+      }
+
+      function drop() {
+        if (!state.running || state.time - state.lastDrop < .48) return;
+        const r = radius(state.current);
+        const x = clamp(state.aim, wall.left + r, wall.right - r);
+        addBall(state.current, x, 80);
+        state.current = state.next;
+        state.next = randomStarter();
+        state.lastDrop = state.time;
+        state.dropCount++;
+        syncNext();
+        tone(205, .1, 0, .045);
+        if (state.dropCount > 1) hint.classList.add('hide');
+      }
+
+      function endGame() {
+        if (!state.running) return;
+        state.running = false;
+        finalScore.textContent = state.score.toLocaleString('zh-CN');
+        gameOver.hidden = false;
+        tone(260, .5, 0, .06); tone(130, .65, .1, .045);
+        document.getElementById('againBtn').focus();
+      }
+
+      function reset() {
+        state.balls = [];
+        state.score = 0; state.combo = 1; state.running = true;
+        state.aim = W / 2; state.current = randomStarter(); state.next = randomStarter();
+        state.time = 0; state.lastDrop = -9; state.lastMerge = -9; state.dropCount = 0;
+        gameOver.hidden = true; hint.classList.remove('hide');
+        scoreEl.textContent = '0'; bestEl.textContent = state.best.toLocaleString('zh-CN'); comboEl.textContent = '×1';
+        syncNext();
+      }
+
+      function pointerX(event) {
+        const rect = canvas.getBoundingClientRect();
+        state.aim = ((event.clientX - rect.left) / rect.width) * W;
+      }
+      canvas.addEventListener('pointerdown', event => {
+        event.preventDefault(); pointerX(event);
+        try { canvas.setPointerCapture(event.pointerId); } catch (_) {}
+      });
+      canvas.addEventListener('pointermove', event => { if (event.pointerType === 'mouse' || event.buttons) pointerX(event); });
+      canvas.addEventListener('pointerup', event => { event.preventDefault(); pointerX(event); drop(); });
+      canvas.addEventListener('click', event => { if (event.detail === 0) drop(); });
+
+      window.addEventListener('keydown', event => {
+        if (!state.running && (event.key === 'Enter' || event.key === ' ')) { reset(); return; }
+        if (event.key === 'ArrowLeft') { event.preventDefault(); state.aim -= 22; }
+        if (event.key === 'ArrowRight') { event.preventDefault(); state.aim += 22; }
+        if (event.key === ' ' || event.key === 'Enter') { event.preventDefault(); drop(); }
+      });
+
+      document.getElementById('againBtn').addEventListener('click', reset);
+      document.getElementById('resetBtn').addEventListener('click', reset);
+      soundBtn.addEventListener('click', () => {
+        state.sound = !state.sound;
+        soundBtn.setAttribute('aria-label', state.sound ? '关闭音效' : '开启音效');
+        soundBtn.innerHTML = state.sound
+          ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Zm4 4a4 4 0 0 1 0 6m3-9a8 8 0 0 1 0 12"/></svg>'
+          : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Zm5 5 5 5m0-5-5 5"/></svg>';
+      });
+
+      document.getElementById('legend').innerHTML = LEVELS.slice(0, 6).map(item =>
+        `<div class="legend-item"><span class="legend-dot" style="background:${item.color};color:${item.ink}">${item.short}</span><span>${item.name}</span></div>`
+      ).join('');
+
+      try { state.best = Number(localStorage.getItem('xmu_merge_best_v1')) || 0; } catch (_) {}
+      reset();
+
+      let last = performance.now(), accumulator = 0;
+      function frame(now) {
+        const delta = Math.min(.08, (now - last) / 1000);
+        last = now; accumulator += delta;
+        let steps = 0;
+        while (accumulator >= fixed && steps < 12) {
+          if (state.running) physics(fixed);
+          accumulator -= fixed; steps++;
+        }
+        render();
+        requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    })();
+  </script>
+</body>
+</html>
