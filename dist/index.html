@@ -49,13 +49,13 @@
     }
 
     .topbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
-    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
     .brand-mark {
-      width: 44px; height: 44px; border-radius: 50%; position: relative; flex: 0 0 auto;
-      display: grid; place-items: center; overflow: hidden; padding: 3px; background: #fff;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.22), 0 10px 30px rgba(0,0,0,.22);
+      width: 112px; height: 44px; position: relative; flex: 0 0 auto;
+      display: grid; place-items: end center; overflow: visible;
+      filter: drop-shadow(0 9px 13px rgba(0,0,0,.34));
     }
-    .brand-mark img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .brand-mark img { width: 100%; height: 100%; object-fit: contain; object-position: center bottom; display: block; }
     .eyebrow { margin: 0 0 2px; color: var(--sea-light); font-size: .78rem; letter-spacing: .14em; }
     h1 { margin: 0; font-size: clamp(1.28rem, 2.6vw, 1.72rem); letter-spacing: .02em; }
     .actions { display: flex; align-items: center; gap: 8px; }
@@ -185,7 +185,8 @@
 
     @media (max-width: 480px) {
       .page { padding-top: max(9px, env(safe-area-inset-top)); padding-bottom: max(8px, env(safe-area-inset-bottom)); }
-      .brand-mark { width: 38px; height: 38px; border-radius: 12px; }
+      .brand { gap: 7px; }
+      .brand-mark { width: 96px; height: 36px; }
       .eyebrow { display: none; }
       h1 { font-size: 1.12rem; }
       .icon-btn { width: 38px; height: 38px; border-radius: 12px; }
@@ -208,7 +209,7 @@
   <div class="page">
     <header class="topbar">
       <div class="brand">
-        <div class="brand-mark"><img src="assets/schools/xmu.png" alt="厦门大学校徽"></div>
+        <div class="brand-mark"><img src="assets/xmu-landmark-row.png" alt="厦门大学嘉庚风格建筑"></div>
         <div>
           <p class="eyebrow">XIAMEN CAMPUS MERGE</p>
           <h1>合成厦大</h1>
@@ -264,6 +265,8 @@
     </div>
   </div>
 
+  <audio id="bingSound" src="assets/bing-bing-bing.wav" preload="auto"></audio>
+
   <script>
     (() => {
       'use strict';
@@ -301,12 +304,28 @@
       const gameOver = document.getElementById('gameOver');
       const finalScore = document.getElementById('finalScore');
       const soundBtn = document.getElementById('soundBtn');
+      const bingSound = document.getElementById('bingSound');
 
       const state = {
         balls: [], score: 0, best: 0, combo: 1, running: true,
         aim: W / 2, current: 0, next: 1, time: 0, lastDrop: -9,
-        lastMerge: -9, dropCount: 0, sound: true, audio: null
+        lastMerge: -9, dropCount: 0, sound: true, audio: null, bingUnlocked: false
       };
+
+      function syncCanvasResolution() {
+        const ratio = Math.min(3, Math.max(1, window.devicePixelRatio || 1));
+        const width = Math.round(W * ratio);
+        const height = Math.round(H * ratio);
+        if (canvas.width !== width || canvas.height !== height) {
+          canvas.width = width;
+          canvas.height = height;
+        }
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+      }
+
+      syncCanvasResolution();
 
       const LOGOS = LEVELS.map(item => {
         const image = new Image();
@@ -395,6 +414,37 @@
         } catch (_) {}
       }
 
+      function unlockBing() {
+        if (state.bingUnlocked) return;
+        state.bingUnlocked = true;
+        try {
+          bingSound.muted = true;
+          const attempt = bingSound.play();
+          if (attempt && attempt.then) {
+            attempt.then(() => {
+              bingSound.pause();
+              bingSound.currentTime = 0;
+              bingSound.muted = false;
+            }).catch(() => {
+              state.bingUnlocked = false;
+              bingSound.muted = false;
+            });
+          }
+        } catch (_) { state.bingUnlocked = false; bingSound.muted = false; }
+      }
+
+      function playBing(level) {
+        if (!state.sound) return;
+        try {
+          bingSound.muted = false;
+          bingSound.volume = Math.min(.82, .66 + level * .016);
+          bingSound.playbackRate = Math.min(1.12, 1 + level * .01);
+          bingSound.currentTime = 0;
+          const attempt = bingSound.play();
+          if (attempt && attempt.catch) attempt.catch(() => {});
+        } catch (_) {}
+      }
+
       function merge(a, b) {
         a.dead = true; b.dead = true;
         const level = a.level + 1;
@@ -405,8 +455,8 @@
         state.combo = chained ? Math.min(9, state.combo + 1) : 1;
         state.lastMerge = state.time;
         setScore(Math.round((2 ** (level + 1)) * state.combo));
-        tone(320 * Math.pow(1.09, level), .16, 0, .075);
-        tone(480 * Math.pow(1.08, level), .18, .045, .04);
+        playBing(level);
+        tone(520 * Math.pow(1.055, level), .14, .02, .035);
         if (state.combo > 1) {
           comboPop.textContent = `连击 ×${state.combo}`;
           comboPop.classList.remove('show');
@@ -569,7 +619,7 @@
         state.aim = ((event.clientX - rect.left) / rect.width) * W;
       }
       canvas.addEventListener('pointerdown', event => {
-        event.preventDefault(); pointerX(event);
+        event.preventDefault(); unlockBing(); pointerX(event);
         try { canvas.setPointerCapture(event.pointerId); } catch (_) {}
       });
       canvas.addEventListener('pointermove', event => { if (event.pointerType === 'mouse' || event.buttons) pointerX(event); });
@@ -587,6 +637,7 @@
       document.getElementById('resetBtn').addEventListener('click', reset);
       soundBtn.addEventListener('click', () => {
         state.sound = !state.sound;
+        if (state.sound) unlockBing();
         soundBtn.setAttribute('aria-label', state.sound ? '关闭音效' : '开启音效');
         soundBtn.innerHTML = state.sound
           ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Zm4 4a4 4 0 0 1 0 6m3-9a8 8 0 0 1 0 12"/></svg>'
@@ -599,6 +650,7 @@
 
       try { state.best = Number(localStorage.getItem('xmu_merge_best_v1')) || 0; } catch (_) {}
       reset();
+      window.addEventListener('resize', syncCanvasResolution, { passive: true });
 
       let last = performance.now(), accumulator = 0;
       function frame(now) {
