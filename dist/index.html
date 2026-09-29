@@ -265,8 +265,6 @@
     </div>
   </div>
 
-  <audio id="bingSound" src="assets/bing-bing-bing.wav" preload="auto"></audio>
-
   <script>
     (() => {
       'use strict';
@@ -304,12 +302,11 @@
       const gameOver = document.getElementById('gameOver');
       const finalScore = document.getElementById('finalScore');
       const soundBtn = document.getElementById('soundBtn');
-      const bingSound = document.getElementById('bingSound');
 
       const state = {
         balls: [], score: 0, best: 0, combo: 1, running: true,
         aim: W / 2, current: 0, next: 1, time: 0, lastDrop: -9,
-        lastMerge: -9, dropCount: 0, sound: true, audio: null, bingUnlocked: false
+        lastMerge: -9, dropCount: 0, sound: true, audio: null
       };
 
       function syncCanvasResolution() {
@@ -414,37 +411,6 @@
         } catch (_) {}
       }
 
-      function unlockBing() {
-        if (state.bingUnlocked) return;
-        state.bingUnlocked = true;
-        try {
-          bingSound.muted = true;
-          const attempt = bingSound.play();
-          if (attempt && attempt.then) {
-            attempt.then(() => {
-              bingSound.pause();
-              bingSound.currentTime = 0;
-              bingSound.muted = false;
-            }).catch(() => {
-              state.bingUnlocked = false;
-              bingSound.muted = false;
-            });
-          }
-        } catch (_) { state.bingUnlocked = false; bingSound.muted = false; }
-      }
-
-      function playBing(level) {
-        if (!state.sound) return;
-        try {
-          bingSound.muted = false;
-          bingSound.volume = Math.min(.82, .66 + level * .016);
-          bingSound.playbackRate = Math.min(1.12, 1 + level * .01);
-          bingSound.currentTime = 0;
-          const attempt = bingSound.play();
-          if (attempt && attempt.catch) attempt.catch(() => {});
-        } catch (_) {}
-      }
-
       function merge(a, b) {
         a.dead = true; b.dead = true;
         const level = a.level + 1;
@@ -455,8 +421,8 @@
         state.combo = chained ? Math.min(9, state.combo + 1) : 1;
         state.lastMerge = state.time;
         setScore(Math.round((2 ** (level + 1)) * state.combo));
-        playBing(level);
-        tone(520 * Math.pow(1.055, level), .14, .02, .035);
+        tone(320 * Math.pow(1.09, level), .16, 0, .075);
+        tone(480 * Math.pow(1.08, level), .18, .045, .04);
         if (state.combo > 1) {
           comboPop.textContent = `连击 ×${state.combo}`;
           comboPop.classList.remove('show');
@@ -619,7 +585,7 @@
         state.aim = ((event.clientX - rect.left) / rect.width) * W;
       }
       canvas.addEventListener('pointerdown', event => {
-        event.preventDefault(); unlockBing(); pointerX(event);
+        event.preventDefault(); pointerX(event);
         try { canvas.setPointerCapture(event.pointerId); } catch (_) {}
       });
       canvas.addEventListener('pointermove', event => { if (event.pointerType === 'mouse' || event.buttons) pointerX(event); });
@@ -637,7 +603,6 @@
       document.getElementById('resetBtn').addEventListener('click', reset);
       soundBtn.addEventListener('click', () => {
         state.sound = !state.sound;
-        if (state.sound) unlockBing();
         soundBtn.setAttribute('aria-label', state.sound ? '关闭音效' : '开启音效');
         soundBtn.innerHTML = state.sound
           ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Zm4 4a4 4 0 0 1 0 6m3-9a8 8 0 0 1 0 12"/></svg>'
