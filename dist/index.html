@@ -392,23 +392,67 @@
         nextBadge.title = item.name;
       }
 
+      function getAudio() {
+        if (state.audio && state.audio.state !== 'closed') return state.audio;
+        state.audio = null;
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return null;
+        try {
+          state.audio = new AudioCtx({ latencyHint: 'interactive' });
+        } catch (_) {
+          try { state.audio = new AudioCtx(); } catch (_) { state.audio = null; }
+        }
+        return state.audio;
+      }
+
+      function primeAudio() {
+        if (!state.sound) return;
+        const audio = getAudio();
+        if (!audio) return;
+        const playSilentFrame = () => {
+          try {
+            const source = audio.createBufferSource();
+            source.buffer = audio.createBuffer(1, 1, audio.sampleRate || 44100);
+            source.connect(audio.destination);
+            source.start(0);
+          } catch (_) {}
+        };
+        if (audio.state !== 'running') {
+          try {
+            const resumed = audio.resume();
+            if (resumed && resumed.then) resumed.then(playSilentFrame).catch(() => {});
+          } catch (_) {}
+        } else {
+          playSilentFrame();
+        }
+      }
+
       function tone(freq, duration, offset = 0, volume = .05) {
         if (!state.sound) return;
-        try {
-          const AudioCtx = window.AudioContext || window.webkitAudioContext;
-          if (!state.audio) state.audio = new AudioCtx();
-          if (state.audio.state === 'suspended') state.audio.resume();
-          const osc = state.audio.createOscillator();
-          const gain = state.audio.createGain();
-          const start = state.audio.currentTime + offset;
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(freq, start);
-          gain.gain.setValueAtTime(.0001, start);
-          gain.gain.exponentialRampToValueAtTime(volume, start + .012);
-          gain.gain.exponentialRampToValueAtTime(.0001, start + duration);
-          osc.connect(gain); gain.connect(state.audio.destination);
-          osc.start(start); osc.stop(start + duration + .02);
-        } catch (_) {}
+        const audio = getAudio();
+        if (!audio) return;
+        const play = () => {
+          try {
+            const osc = audio.createOscillator();
+            const gain = audio.createGain();
+            const start = audio.currentTime + offset;
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, start);
+            gain.gain.setValueAtTime(.0001, start);
+            gain.gain.exponentialRampToValueAtTime(volume, start + .012);
+            gain.gain.exponentialRampToValueAtTime(.0001, start + duration);
+            osc.connect(gain); gain.connect(audio.destination);
+            osc.start(start); osc.stop(start + duration + .02);
+          } catch (_) {}
+        };
+        if (audio.state !== 'running') {
+          try {
+            const resumed = audio.resume();
+            if (resumed && resumed.then) resumed.then(play).catch(() => {});
+          } catch (_) {}
+        } else {
+          play();
+        }
       }
 
       function merge(a, b) {
@@ -585,14 +629,16 @@
         state.aim = ((event.clientX - rect.left) / rect.width) * W;
       }
       canvas.addEventListener('pointerdown', event => {
-        event.preventDefault(); pointerX(event);
+        primeAudio(); event.preventDefault(); pointerX(event);
         try { canvas.setPointerCapture(event.pointerId); } catch (_) {}
       });
+      canvas.addEventListener('touchstart', primeAudio, { passive: true });
       canvas.addEventListener('pointermove', event => { if (event.pointerType === 'mouse' || event.buttons) pointerX(event); });
       canvas.addEventListener('pointerup', event => { event.preventDefault(); pointerX(event); drop(); });
       canvas.addEventListener('click', event => { if (event.detail === 0) drop(); });
 
       window.addEventListener('keydown', event => {
+        primeAudio();
         if (!state.running && (event.key === 'Enter' || event.key === ' ')) { reset(); return; }
         if (event.key === 'ArrowLeft') { event.preventDefault(); state.aim -= 22; }
         if (event.key === 'ArrowRight') { event.preventDefault(); state.aim += 22; }
@@ -603,6 +649,10 @@
       document.getElementById('resetBtn').addEventListener('click', reset);
       soundBtn.addEventListener('click', () => {
         state.sound = !state.sound;
+        if (state.sound) {
+          primeAudio();
+          tone(360, .09, 0, .035);
+        }
         soundBtn.setAttribute('aria-label', state.sound ? '关闭音效' : '开启音效');
         soundBtn.innerHTML = state.sound
           ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Zm4 4a4 4 0 0 1 0 6m3-9a8 8 0 0 1 0 12"/></svg>'
@@ -616,6 +666,10 @@
       try { state.best = Number(localStorage.getItem('xmu_merge_best_v1')) || 0; } catch (_) {}
       reset();
       window.addEventListener('resize', syncCanvasResolution, { passive: true });
+      window.addEventListener('pageshow', () => { if (state.sound) primeAudio(); });
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && state.sound) primeAudio();
+      });
 
       let last = performance.now(), accumulator = 0;
       function frame(now) {
