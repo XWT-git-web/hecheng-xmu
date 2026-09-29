@@ -98,9 +98,11 @@
     .next { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 5px 8px; }
     #nextBadge {
       width: 38px; height: 38px; display: grid; place-items: center; border-radius: 50%;
-      color: #071e33; font-weight: 900; border: 2px solid rgba(255,255,255,.5);
+      overflow: hidden; color: #071e33; font-weight: 900; border: 2px solid rgba(255,255,255,.5);
+      background: #fff;
       box-shadow: inset 0 -5px 10px rgba(0,0,0,.12);
     }
+    #nextBadge img { width: 92%; height: 92%; object-fit: contain; display: block; }
 
     .board {
       position: relative;
@@ -152,7 +154,8 @@
       display: flex; align-items: center; gap: 9px; min-width: 0; padding: 8px 10px;
       border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.035);
     }
-    .legend-dot { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; flex: 0 0 auto; color: #071e33; font-size: .68rem; font-weight: 900; }
+    .legend-dot { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; flex: 0 0 auto; overflow: hidden; background: #fff; border: 1px solid rgba(255,255,255,.3); }
+    .legend-dot img { width: 94%; height: 94%; object-fit: contain; }
     .legend-item span:last-child { overflow: hidden; color: #c6d5df; font-size: .75rem; text-overflow: ellipsis; white-space: nowrap; }
     footer { text-align: center; color: rgba(167,187,202,.68); font-size: .72rem; }
 
@@ -234,7 +237,7 @@
           <div class="stat"><span>分数</span><strong id="score">0</strong></div>
           <div class="stat"><span>最高</span><strong id="best">0</strong></div>
           <div class="stat"><span>连击</span><strong id="combo">×1</strong></div>
-          <div class="next"><span>下一个</span><b id="nextBadge">白</b></div>
+          <div class="next"><span>下一个</span><b id="nextBadge"><img id="nextLogo" alt=""></b></div>
         </div>
         <div class="board" id="board">
           <canvas id="game" width="440" height="700" aria-label="移动鼠标或手指选择位置，松开即可投放；键盘左右键移动，空格投放"></canvas>
@@ -244,14 +247,14 @@
       </section>
 
       <aside class="side">
-        <div class="side-kicker">从海边出发</div>
-        <h2>把厦园记忆，一层层合起来。</h2>
-        <p>让相同的校园印记碰在一起，从白城与芙蓉隧道，慢慢合成一座完整的厦门大学。</p>
+        <div class="side-kicker">从同济出发</div>
+        <h2>把名校校徽，一层层合成厦大。</h2>
+        <p>让两个相同校徽碰在一起，依次升级。越过红色虚线并停留 2 秒，本局就会结束。</p>
         <div class="motto">
           <strong>自强不息 · 止于至善</strong>
-          <small>每一次合成都更靠近顶级印记</small>
+          <small>最终目标：合成厦门大学校徽</small>
         </div>
-        <p class="legend-title">校园图鉴 · 前六级</p>
+        <p class="legend-title">校徽图鉴 · 11 级</p>
         <div class="legend" id="legend"></div>
       </aside>
     </main>
@@ -273,17 +276,17 @@
       'use strict';
 
       const LEVELS = [
-        { name: '白城沙滩', short: '白', color: '#8ee4d8', ink: '#08334a' },
-        { name: '芙蓉隧道', short: '芙', color: '#f6c96b', ink: '#4b3511' },
-        { name: '芙蓉湖', short: '湖', color: '#49c9bb', ink: '#063d46' },
-        { name: '上弦场', short: '弦', color: '#ef9a63', ink: '#502415' },
-        { name: '海韵园', short: '韵', color: '#71aee8', ink: '#0b3155' },
-        { name: '群贤楼', short: '贤', color: '#e67a5c', ink: '#4b1e19' },
-        { name: '建南礼堂', short: '南', color: '#f4efe3', ink: '#173247' },
-        { name: '嘉庚楼群', short: '庚', color: '#d65c42', ink: '#fff5e8' },
-        { name: '颂恩楼', short: '颂', color: '#a88adf', ink: '#28184c' },
-        { name: '止于至善', short: '善', color: '#f0b94f', ink: '#40280a' },
-        { name: '厦门大学', short: '厦', color: '#f7f1e7', ink: '#8f2f28' }
+        { name: '同济大学', short: '同济', img: 'assets/schools/tongji.png', color: '#1558b0' },
+        { name: '四川大学', short: '川大', img: 'assets/schools/scu.jpg', color: '#e51f2a' },
+        { name: '武汉大学', short: '武大', img: 'assets/schools/whu.png', color: '#08613f' },
+        { name: '南京大学', short: '南大', img: 'assets/schools/nju.jpg', color: '#74107d' },
+        { name: '复旦大学', short: '复旦', img: 'assets/schools/fudan.png', color: '#174da5' },
+        { name: '中国科学技术大学', short: '中科大', img: 'assets/schools/ustc.png', color: '#075b9e' },
+        { name: '浙江大学', short: '浙大', img: 'assets/schools/zju.png', color: '#005bac' },
+        { name: '上海交通大学', short: '上交', img: 'assets/schools/sjtu.png', color: '#ce1126' },
+        { name: '清华大学', short: '清华', img: 'assets/schools/tsinghua.png', color: '#7d2b91' },
+        { name: '北京大学', short: '北大', img: 'assets/schools/pku.webp', color: '#8c1515' },
+        { name: '厦门大学', short: '厦大', img: 'assets/schools/xmu.png', color: '#075bbb' }
       ];
 
       const W = 440, H = 700;
@@ -299,6 +302,7 @@
       const bestEl = document.getElementById('best');
       const comboEl = document.getElementById('combo');
       const nextBadge = document.getElementById('nextBadge');
+      const nextLogo = document.getElementById('nextLogo');
       const hint = document.getElementById('hint');
       const comboPop = document.getElementById('comboPop');
       const gameOver = document.getElementById('gameOver');
@@ -311,39 +315,45 @@
         lastMerge: -9, dropCount: 0, sound: true, audio: null
       };
 
+      const LOGOS = LEVELS.map(item => {
+        const image = new Image();
+        image.ok = false;
+        image.onload = () => { image.ok = image.naturalWidth > 0; };
+        image.onerror = () => { image.ok = false; };
+        image.src = item.img;
+        return image;
+      });
+
       const radius = level => 21 * Math.pow(4.1, level / maxLevel);
       const randomStarter = () => Math.floor(Math.random() * 4);
       const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
 
       function drawLandmark(level, x, y, r, angle = 0, alpha = 1) {
         const item = LEVELS[level];
+        const logo = LOGOS[level];
         ctx.save();
         ctx.globalAlpha = alpha;
         ctx.translate(x, y);
         ctx.rotate(angle);
-
-        const glow = ctx.createRadialGradient(-r * .32, -r * .4, r * .08, 0, 0, r);
-        glow.addColorStop(0, '#ffffff');
-        glow.addColorStop(.12, item.color);
-        glow.addColorStop(1, item.color);
-        ctx.fillStyle = glow;
+        ctx.fillStyle = '#fff';
         ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
-
-        ctx.strokeStyle = 'rgba(255,255,255,.52)';
-        ctx.lineWidth = Math.max(1.5, r * .055);
-        ctx.beginPath(); ctx.arc(0, 0, r * .88, 0, Math.PI * 2); ctx.stroke();
-
-        ctx.fillStyle = item.ink;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.font = `900 ${Math.max(13, r * .78)}px "STKaiti", "KaiTi", "PingFang SC", sans-serif`;
-        ctx.fillText(item.short, 0, r * .02);
-
-        if (r > 49) {
-          ctx.font = `700 ${Math.max(9, r * .16)}px system-ui, sans-serif`;
-          ctx.letterSpacing = '.06em';
-          ctx.fillText(item.name, 0, r * .48);
+        ctx.save();
+        ctx.beginPath(); ctx.arc(0, 0, r * .94, 0, Math.PI * 2); ctx.clip();
+        if (logo.ok) {
+          ctx.drawImage(logo, -r * .91, -r * .91, r * 1.82, r * 1.82);
+        } else {
+          ctx.fillStyle = item.color; ctx.fillRect(-r, -r, r * 2, r * 2);
+          ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.font = `900 ${Math.max(10, r * .48)}px "PingFang SC", sans-serif`;
+          ctx.fillText(item.short, 0, 0);
         }
+        ctx.restore();
+        ctx.strokeStyle = 'rgba(255,255,255,.72)';
+        ctx.lineWidth = Math.max(1.8, r * .06);
+        ctx.beginPath(); ctx.arc(0, 0, r * .96, 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = 'rgba(5,25,40,.36)';
+        ctx.lineWidth = Math.max(1, r * .025);
+        ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
         ctx.restore();
       }
 
@@ -367,9 +377,9 @@
 
       function syncNext() {
         const item = LEVELS[state.next];
-        nextBadge.textContent = item.short;
-        nextBadge.style.background = item.color;
-        nextBadge.style.color = item.ink;
+        nextLogo.src = item.img;
+        nextLogo.alt = item.name;
+        nextBadge.title = item.name;
       }
 
       function tone(freq, duration, offset = 0, volume = .05) {
@@ -464,9 +474,9 @@
 
         state.balls = state.balls.filter(b => !b.dead);
         for (const b of state.balls) {
-          const settledNearTop = b.y - b.r < dangerY && Math.abs(b.vy) < 90 && state.time - b.born > 1;
-          b.danger = settledNearTop ? b.danger + dt : Math.max(0, b.danger - dt * 2);
-          if (b.danger > 2.1) endGame();
+          const overLine = b.y - b.r < dangerY && state.time - b.born > .7;
+          b.danger = overLine ? b.danger + dt : 0;
+          if (b.danger >= 2) endGame();
         }
         if (state.time - state.lastMerge > 1.2 && state.combo !== 1) {
           state.combo = 1;
@@ -497,6 +507,10 @@
         ctx.lineWidth = 2;
         ctx.beginPath(); ctx.moveTo(wall.left + 8, dangerY); ctx.lineTo(wall.right - 8, dangerY); ctx.stroke();
         ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(255,148,130,.78)';
+        ctx.font = '700 11px system-ui, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText('越线 2 秒即失败', wall.right - 12, dangerY - 8);
 
         if (state.running) {
           const r = radius(state.current);
@@ -585,8 +599,8 @@
           : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Zm5 5 5 5m0-5-5 5"/></svg>';
       });
 
-      document.getElementById('legend').innerHTML = LEVELS.slice(0, 6).map(item =>
-        `<div class="legend-item"><span class="legend-dot" style="background:${item.color};color:${item.ink}">${item.short}</span><span>${item.name}</span></div>`
+      document.getElementById('legend').innerHTML = LEVELS.map(item =>
+        `<div class="legend-item"><span class="legend-dot"><img src="${item.img}" alt=""></span><span>${item.name}</span></div>`
       ).join('');
 
       try { state.best = Number(localStorage.getItem('xmu_merge_best_v1')) || 0; } catch (_) {}
