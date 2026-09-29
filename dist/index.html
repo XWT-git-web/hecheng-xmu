@@ -247,7 +247,7 @@
       </section>
 
       <aside class="side">
-        <div class="side-kicker">从同济出发</div>
+        <div class="side-kicker">从东北大学出发</div>
         <h2>把名校校徽，一层层合成厦大。</h2>
         <p>让两个相同校徽碰在一起，依次升级。越过红色虚线并停留 2 秒，本局就会结束。</p>
         <div class="motto">
@@ -276,10 +276,10 @@
       'use strict';
 
       const LEVELS = [
-        { name: '同济大学', short: '同济', img: 'assets/schools/tongji.png', color: '#1558b0' },
+        { name: '东北大学', short: '东大', img: 'assets/schools/neu.png', color: '#075caf' },
         { name: '四川大学', short: '川大', img: 'assets/schools/scu.jpg', color: '#e51f2a' },
         { name: '武汉大学', short: '武大', img: 'assets/schools/whu.png', color: '#08613f' },
-        { name: '南京大学', short: '南大', img: 'assets/schools/nju.jpg', color: '#74107d' },
+        { name: '南京大学', short: '南大', img: 'assets/schools/nju.jpg', color: '#74107d', scale: .72 },
         { name: '复旦大学', short: '复旦', img: 'assets/schools/fudan.png', color: '#174da5' },
         { name: '中国科学技术大学', short: '中科大', img: 'assets/schools/ustc.png', color: '#075b9e' },
         { name: '浙江大学', short: '浙大', img: 'assets/schools/zju.png', color: '#005bac' },
@@ -340,7 +340,8 @@
         ctx.save();
         ctx.beginPath(); ctx.arc(0, 0, r * .94, 0, Math.PI * 2); ctx.clip();
         if (logo.ok) {
-          ctx.drawImage(logo, -r * .91, -r * .91, r * 1.82, r * 1.82);
+          const scale = item.scale || .91;
+          ctx.drawImage(logo, -r * scale, -r * scale, r * scale * 2, r * scale * 2);
         } else {
           ctx.fillStyle = item.color; ctx.fillRect(-r, -r, r * 2, r * 2);
           ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
